@@ -76,23 +76,25 @@ class Scope:
             x_scale = float(self.query(':TIMebase:SCALe?'))
             x_offset = float(self.query(':TIMebase:OFFSet?'))
 
-            data = self.Data(channel, y, y_scale, y_offset, x_scale, x_offset)
+            y = (y - y_offset) * 8 * y_scale / 256
+            x = np.linspace(0, x_scale * 12, len(y))
 
+            data = self.Data(channel, y.tolist(), y_scale, y_offset, x.tolist(), x_scale, x_offset)
             self.data_manager.add_data(data)
 
             self.start()
         except Exception as e:
             print(f'ERROR: Couldn\'t acquire data: {e}')
-        finally:
-            self._scope.close()
 
     class Data:
-        def __init__(self, channel, y, y_scale, y_offset, x_scale, x_offset):
+        def __init__(self, channel, y, y_scale, y_offset, x, x_scale, x_offset):
             self.channel = channel
-            self.y = (y - y_offset) * 8 * y_scale / 256,
+            self.y = y,
+            self.y = self.y[0]
             self.y_scale = y_scale
             self.y_offset = y_offset
-            self.x = np.linspace(0, x_scale * 12, len(y)),
+            self.x = x,
+            self.x = self.x[0]
             self.x_scale = x_scale
             self.x_offset = x_offset
 
@@ -111,13 +113,11 @@ class Scope:
             self.data_arr.append(data)
 
         def plot_latest(self):
-            print(len(self.data_arr))
             self.data_arr[-1].plot()
         
         def plot_all(self):
             for data in self.data_arr:
                 data.plot()
-
 
     class Measure:
         def __init__(self, scope) -> None:
@@ -150,6 +150,3 @@ class Scope:
 
 scope = Scope(resource='ASRL4::INSTR')
 scope.connect()
-scope.acquire_data()
-scope.data_manager.plot_latest()
-
